@@ -18,7 +18,7 @@ class LustreossStatsCollector(diamond.collector.Collector):
     def collect(self):
         odbfilter = '/usr/sbin/lctl list_param obdfilter.*.stats'
         brw_cmd = 'tail -n11 /proc/fs/lustre/obdfilter/*/brw_stats'
-        brw_cmd2 = 'tail -n11 /proc/fs/lustre/obdfilter/*/stats'
+        brw_cmd2 = 'tail -n11 /proc/fs/lustre/osd-ldiskfs/*/brw_stats'
         lctl_cmd = odbfilter.split(" ")
         try:
             odbfilter = Popen(lctl_cmd, stdout=PIPE, stderr=PIPE)
@@ -59,11 +59,9 @@ class LustreossStatsCollector(diamond.collector.Collector):
         try:
             brw = Popen(brw_cmd, shell=True, stdout=PIPE, stderr=PIPE)
             brw_out, brw_err = brw.communicate()
-            self.log.critical(brw_out)
-            self.log.critical(brw_err)
         except OSError, e:
             self.log.critical("OSError: %s" % e)
-        if "No such file or directory" in brw_out:
+        if "No such file or directory" in brw_err:
             try:
                 brw = Popen(brw_cmd2, shell=True, stdout=PIPE, stderr=PIPE)
                 brw_out, brw_err = brw.communicate()
@@ -74,10 +72,9 @@ class LustreossStatsCollector(diamond.collector.Collector):
             if '==>' in line:
                 heading = line.split("/")[5].split("-")[1] \
                     + "." + line.split("/")[6].strip("<==").strip()
-            else:
-                heading = next(os.walk('/proc/fs/lustre/obdfilter/.')
-                               )[1][0].split('-')[1] + '.brw_stats'
             if 'read' in line and 'write' in line:
+                continue
+            if 'disk I/O' in line:
                 continue
             if '4K:' in line:
                 read_key = heading+'_read_4k'
@@ -124,8 +121,6 @@ class LustreossStatsCollector(diamond.collector.Collector):
                 write_key = heading+'_write_1M'
                 ost_stats[read_key] = int(line.split()[1])
                 ost_stats[write_key] = int(line.split()[5])
-        except OSError, e:
-            logger.critical("OSError: %s" % e)
 
         for metric, value in ost_stats.iteritems():
             self.publish(metric, value)
