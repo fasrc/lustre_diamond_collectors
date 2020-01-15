@@ -44,18 +44,12 @@ class LustreossStatsCollector(diamond.collector.Collector):
             for line in ost_stat_out.splitlines():
                 if "read_bytes" in line:
                     bytes_metric = "%s.read_bytes" % ost_name
-                    bytes_value = line.split()[1]
+                    bytes_value = line.split()[6]
                     self.publish(bytes_metric, bytes_value)
-                    io_metric = "%s.read_io" % ost_name
-                    io_value = line.split()[6]
-                    self.publish(io_metric, io_value)
                 elif "write_bytes" in line:
                     bytes_metric = "%s.write_bytes" % ost_name
-                    bytes_value = line.split()[1]
+                    bytes_value = line.split()[6]
                     self.publish(bytes_metric, bytes_value)
-                    io_metric = "%s.write_io" % ost_name
-                    io_value = line.split()[6]
-                    self.publish(io_metric, io_value)
         try:
             brw = Popen(brw_cmd, shell=True, stdout=PIPE, stderr=PIPE)
             brw_out, brw_err = brw.communicate()
